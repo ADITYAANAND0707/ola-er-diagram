@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ola Electric — Interactive ER Diagram</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--soft:#eef0f4;--line:#cbd5e1;--hi:#4f46e5;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--text);background:#f1f5f9;overflow:hidden;display:flex;flex-direction:column}
+  .bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#fff;border-bottom:1px solid var(--soft);flex-wrap:wrap;z-index:10}
+  .bar .title{font-weight:800;font-size:13.5px;color:#4338ca;margin-right:auto;display:flex;align-items:center;gap:8px}
+  .bar .title .dot{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;display:grid;place-items:center;font-size:11px}
+  .bar .sub{font-weight:500;font-size:11px;color:var(--muted)}
+  .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:#fff;color:#334155;padding:6px 11px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;user-select:none}
+  .btn:hover{border-color:#c7d2fe;color:#4338ca;background:#eef2ff}
+  .btn.p{background:#4f46e5;border-color:#4f46e5;color:#fff}.btn.p:hover{background:#4338ca;color:#fff}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .seg .btn{border:none;border-radius:0;border-right:1px solid var(--border)}.seg .btn:last-child{border-right:none}
+  .tog{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#334155;cursor:pointer;user-select:none}
+  .tog input{accent-color:#4f46e5}
+  .legend{display:flex;gap:11px;font-size:11px;color:var(--muted);align-items:center}
+  .legend b{font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:3px;color:#fff}
+  .b-unq{background:#d97706}.b-calc{background:#7c3aed}.b-pii{background:#dc2626}
+  .ico{vertical-align:-1px}
+
+  #viewport{flex:1;position:relative;overflow:hidden;cursor:grab;background:radial-gradient(circle,#dde3ec 1px,transparent 1px) 0 0/22px 22px}
+  #viewport.panning{cursor:grabbing}
+  #stage{position:absolute;left:0;top:0;transform-origin:0 0}
+  svg#wires{position:absolute;left:0;top:0;overflow:visible;z-index:1}
+  svg#wires .ln,svg#wires .cf{fill:none;stroke:var(--line);stroke-width:1.5;opacity:.6;transition:stroke .1s,stroke-width .1s,opacity .1s}
+  svg#wires path{pointer-events:stroke}
+  svg#wires .cl{fill:#94a3b8;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;pointer-events:none}
+  #stage.hideRel svg#wires{display:none}
+
+  .table{position:absolute;width:248px;background:#fff;border:1px solid #d8dee9;border-radius:10px;box-shadow:0 3px 10px rgba(15,23,42,.10);z-index:2;transition:box-shadow .1s,opacity .1s;overflow:hidden}
+  .th{padding:7px 12px;color:#fff;cursor:grab}
+  .th:active{cursor:grabbing}
+  .th .nm{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12.5px}
+  .th .st{font-size:9px;opacity:.9}
+  .row{display:grid;grid-template-columns:16px 1fr auto auto;gap:5px;align-items:center;height:21px;padding:0 11px;border-top:1px solid #f1f5f9;font-size:10.5px;transition:background .1s}
+  .row .kc{display:flex;align-items:center;justify-content:center}
+  .row .fn{font-family:'JetBrains Mono',monospace;font-weight:600;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row.pk .fn{font-weight:800}.row.fk .fn{color:#2563eb}
+  .row.aud .fn{color:#94a3b8;font-weight:500}
+  .row .fl{font-size:7.5px;font-weight:800;letter-spacing:.02em;padding:0 4px;border-radius:3px;color:#fff}
+  .row .ty{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:#94a3b8;white-space:nowrap;text-align:right}
+  .row.aud .ty{color:#cbd5e1}
+  .foot{padding:3px 11px;border-top:1px solid #f1f5f9;font-size:8px;color:#cbd5e1;font-family:'JetBrains Mono',monospace;border-radius:0 0 10px 10px}
+
+  body.focusing .table:not(.on){opacity:.18}
+  body.focusing #wires g.rel:not(.on){opacity:.05}
+  .table.on{box-shadow:0 0 0 2px var(--hi),0 12px 26px rgba(79,70,229,.26)}
+  .row.on{background:#eef2ff}
+  #wires g.on .ln,#wires g.on .cf{stroke:var(--hi);stroke-width:2.4;opacity:1}
+  #wires g.on .cl{fill:var(--hi)}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:8px 16px;border-radius:8px;font-size:12.5px;opacity:0;transition:opacity .2s;z-index:50}
+  .toast.show{opacity:.95}
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="title"><span class="dot">M</span> Ola Electric · ER <span class="sub">10 tables · 15 relationships · Supabase</span></div>
+  <div class="legend">
+    <span><svg class="ico" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.4"><circle cx="8" cy="15" r="4"/><path d="M10.6 12.4 19 4"/><path d="M15.5 7.5 18 10"/></svg> PK</span>
+    <span><svg class="ico" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.4"><path d="M9 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M15 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg> FK</span>
+    <span><b class="b-unq">UQ</b> unique</span><span><b class="b-calc">fx</b> computed</span><span><b class="b-pii">PII</b> sensitive</span>
+    <span class="relsw"><svg width="22" height="8"><path d="M1 4 H21" stroke="#94a3b8" stroke-width="1.6" fill="none"/></svg> relationship</span>
+  </div>
+  <label class="tog"><input type="checkbox" id="relTog" checked> Relationships</label>
+  <div class="seg"><span class="btn" id="zout">−</span><span class="btn" id="zfit">Fit</span><span class="btn" id="zin">+</span></div>
+  <span class="btn" id="resetBtn">Reset</span>
+  <span class="btn" id="copyBtn">Copy SQL</span>
+  <span class="btn p" id="sqlBtn">⬇ SQL</span>
+</div>
+<div id="viewport"><div id="stage"><svg id="wires"></svg></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const C={green:'#16a34a',teal:'#0d9488',slate:'#64748b',cyan:'#0891b2',sky:'#06b6d4',gray:'#7c8794',blue:'#2563eb',purple:'#7c3aed',red:'#dc2626',violet:'#9333ea'};
+const KEY='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.4"><circle cx="8" cy="15" r="4"/><path d="M10.6 12.4 19 4"/><path d="M15.5 7.5 18 10"/></svg>';
+const LINK='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.4"><path d="M9 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M15 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg>';
+const AUD=[['created_by','uuid','','audit'],['last_changed_by','uuid','','audit'],['created_at','timestamptz','','audit'],['updated_at','timestamptz','','audit']];
+// field: [name, type, key('pk'|'fk:tgt'|''), flag('pii'|'unq'|'calc'|'audit'|'')]
+const SCHEMA=[
+ {name:"rider",sub:"Rider / customer profile",color:'#0d9488',x:720,y:40,f:[["id","uuid","pk",""],["name","varchar(120)","",""],["phone","varchar(15)","","unq"],["email","varchar(255)","","pii"],["home_city","varchar(80)","",""],["rating","numeric(2,1)","",""],["wallet_balance","numeric(12,2)","","pii"],["default_payment_method","varchar(20)","",""],["total_trips","integer","",""],["is_blocked","boolean","",""],["signup_date","date","",""]]},
+ {name:"support_case",sub:"Customer / driver case",color:'#dc2626',x:1060,y:40,f:[["id","uuid","pk",""],["case_number","varchar(20)","","unq"],["trip_id","uuid","fk:trip",""],["rider_id","uuid","fk:rider",""],["driver_id","uuid","fk:driver",""],["case_type","varchar(20)","",""],["subject","varchar(160)","",""],["description","text","",""],["channel","varchar(20)","",""],["priority","varchar(10)","",""],["status","varchar(20)","",""],["resolved_at","timestamptz","",""]]},
+ {name:"payment_dispute",sub:"Fare / payment complaint",color:'#9333ea',x:1060,y:460,f:[["id","uuid","pk",""],["dispute_number","varchar(20)","","unq"],["payment_id","uuid","fk:payment",""],["trip_id","uuid","fk:trip",""],["rider_id","uuid","fk:rider",""],["reason","varchar(40)","",""],["description","text","",""],["status","varchar(20)","",""],["resolution_amount","numeric(12,2)","",""],["raised_at","timestamptz","",""],["resolved_at","timestamptz","",""]]},
+ {name:"driver",sub:"Driver partner profile",color:'#16a34a',x:40,y:40,f:[["id","uuid","pk",""],["name","varchar(120)","",""],["phone","varchar(15)","","unq"],["email","varchar(255)","",""],["license_number","varchar(40)","","unq"],["license_expiry","date","",""],["operating_city","varchar(80)","",""],["status","varchar(20)","",""],["is_active","boolean","",""],["kyc_verified","boolean","",""],["rating","numeric(2,1)","",""],["total_trips","integer","","calc"],["joined_at","date","",""]]},
+ {name:"vehicle",sub:"Vehicle linked to driver",color:'#64748b',x:380,y:40,f:[["id","uuid","pk",""],["driver_id","uuid","fk:driver",""],["registration_no","varchar(20)","","unq"],["vehicle_type","varchar(20)","",""],["model","varchar(60)","",""],["color","varchar(30)","",""],["manufacture_year","integer","",""],["fuel_type","varchar(20)","",""],["seating_capacity","integer","",""],["battery_level","numeric(5,2)","",""],["is_compliant","boolean","",""],["insurance_expiry","date","",""]]},
+ {name:"trip",sub:"Core ride / booking",color:'#2563eb',x:380,y:440,f:[["id","uuid","pk",""],["trip_number","varchar(20)","","unq"],["rider_id","uuid","fk:rider",""],["driver_id","uuid","fk:driver",""],["vehicle_id","uuid","fk:vehicle",""],["pricing_event_id","uuid","fk:surge_pricing_event",""],["status","varchar(20)","",""],["requested_at","timestamptz","",""],["start_time","timestamptz","",""],["end_time","timestamptz","",""],["pickup_address","varchar(255)","",""],["pickup_lat","numeric(9,6)","",""],["pickup_lng","numeric(9,6)","",""],["drop_address","varchar(255)","",""],["drop_lat","numeric(9,6)","",""],["drop_lng","numeric(9,6)","",""],["distance_km","numeric(6,2)","",""],["duration_min","integer","",""],["base_fare","numeric(12,2)","",""],["surge_multiplier","numeric(4,2)","",""],["fare","numeric(12,2)","","calc"],["otp","varchar(6)","",""],["cancelled_at","timestamptz","",""],["cancellation_reason","varchar(120)","",""],["cancelled_by","varchar(10)","",""]]},
+ {name:"payment",sub:"Payment collection",color:'#7c3aed',x:720,y:820,f:[["id","uuid","pk",""],["payment_number","varchar(20)","","unq"],["trip_id","uuid","fk:trip",""],["amount","numeric(12,2)","",""],["currency","char(3)","",""],["payment_method","varchar(20)","",""],["payment_status","varchar(20)","",""],["surge_applied","boolean","",""],["gateway","varchar(30)","",""],["transaction_ref","varchar(64)","",""],["refund_amount","numeric(12,2)","",""],["paid_at","timestamptz","",""]]},
+ {name:"driver_availability_snapshot",sub:"Aggregated ops snapshot",color:'#7c8794',x:40,y:960,f:[["id","uuid","pk",""],["driver_id","uuid","fk:driver",""],["pricing_zone_id","uuid","fk:pricing_zone",""],["status","varchar(20)","",""],["latitude","numeric(9,6)","",""],["longitude","numeric(9,6)","",""],["snapshot_time","timestamptz","",""]]},
+ {name:"pricing_zone",sub:"Geo pricing zone",color:'#0891b2',x:40,y:660,f:[["id","uuid","pk",""],["name","varchar(120)","",""],["city","varchar(80)","",""],["geohash","varchar(20)","",""],["timezone","varchar(40)","",""],["base_fare","numeric(8,2)","",""],["per_km_rate","numeric(6,2)","",""],["minimum_fare","numeric(8,2)","",""],["regulation_cap","numeric(4,2)","",""],["is_active","boolean","",""]]},
+ {name:"surge_pricing_event",sub:"Explainable pricing decision",color:'#06b6d4',x:720,y:440,f:[["id","uuid","pk",""],["pricing_zone_id","uuid","fk:pricing_zone",""],["vehicle_type","varchar(20)","",""],["real_time_demand","integer","",""],["real_time_supply","integer","",""],["historical_demand","integer","",""],["historical_supply","integer","",""],["pressure_index","numeric(6,2)","","calc"],["surge_multiplier","numeric(4,2)","",""],["effective_from","timestamptz","",""],["effective_to","timestamptz","",""]]}
+];
+
+const TW=248, THH=34, RH=21;
+const tableById={}; SCHEMA.forEach(t=>tableById[t.name]=t);
+const rowY=(t,idx)=> t.y + THH + idx*RH + RH/2;
+const rid=(t,f)=>'f-'+t+'-'+f, tid=t=>'t-'+t;
+const FLAG={unq:['UQ','b-unq'],calc:['fx','b-calc'],pii:['PII','b-pii']};
+
+const edges=[];
+SCHEMA.forEach(t=>t.f.forEach((fld,i)=>{ if(fld[2].startsWith('fk:')){ const tgt=fld[2].slice(3);
+  edges.push({id:'e'+edges.length,fromTbl:t.name,fromIdx:i,fromRow:rid(t.name,fld[0]),toTbl:tgt,toRow:rid(tgt,'id')}); }}));
+
+const stage=document.getElementById('stage'), svg=document.getElementById('wires'), vp=document.getElementById('viewport');
+const SAVE='ola_er_layout_v4';
+let saved={}; try{saved=JSON.parse(localStorage.getItem(SAVE)||'{}')}catch(e){}
+SCHEMA.forEach(t=>{ if(saved.pos&&saved.pos[t.name]){t.x=saved.pos[t.name].x;t.y=saved.pos[t.name].y;} });
+
+function tableHTML(t){
+  let rows='';
+  t.f.forEach(([n,ty,key,flag])=>{
+    const isPk=key==='pk', isFk=key.startsWith('fk:'), isAud=flag==='audit';
+    const cls=isPk?'pk':isFk?'fk':isAud?'aud':'';
+    const ic=isPk?KEY:isFk?LINK:'';
+    const fl=FLAG[flag]?`<span class="fl ${FLAG[flag][1]}">${FLAG[flag][0]}</span>`:'<span></span>';
+    rows+=`<div class="row ${cls}" id="${rid(t.name,n)}" data-tbl="${t.name}"${isFk?` data-fk="${key.slice(3)}"`:''}>
+      <span class="kc">${ic}</span><span class="fn" title="${n}">${n}</span>${fl}<span class="ty">${ty}</span></div>`;
+  });
+  return `<div class="table" id="${tid(t.name)}" style="left:${t.x}px;top:${t.y}px">
+    <div class="th" style="background:${t.color}" data-th="${t.name}"><div class="nm">${t.name}</div><div class="st">${t.sub}</div></div>${rows}<div class="foot">+ created_by · last_changed_by · created_at · updated_at</div></div>`;
+}
+stage.insertAdjacentHTML('beforeend', SCHEMA.map(tableHTML).join(''));
+
+function drawWires(){
+  let s='';
+  edges.forEach(ed=>{ const a=tableById[ed.fromTbl], b=tableById[ed.toTbl];
+    const ay=rowY(a,ed.fromIdx), by=rowY(b,0), aRight=(a.x+TW/2)<(b.x+TW/2);
+    // child (FK, "many") side = x1 ; parent (PK, "one") side = x2
+    const x1=aRight?a.x+TW:a.x, x2=aRight?b.x:b.x+TW;
+    const sd=aRight?1:-1, td=aRight?-1:1;          // outward direction at each end
+    const mx=(x1+x2)/2;                            // mid x for the vertical jog
+    // orthogonal route: out from child, vertical jog, into parent
+    const d=`M ${x1} ${ay} H ${mx} V ${by} H ${x2}`;
+    // crow's-foot ("many") at the child/FK end
+    const foot=`M ${x1+sd*12} ${ay-5} L ${x1} ${ay} L ${x1+sd*12} ${ay+5} M ${x1+sd*12} ${ay} L ${x1} ${ay}`;
+    // single bar ("one") near the parent/PK end
+    const bar=`M ${x2+td*10} ${by-5} L ${x2+td*10} ${by+5}`;
+    s+=`<g class="rel" id="g_${ed.id}">`
+      +`<path class="ln" d="${d}"></path>`
+      +`<path class="cf" d="${foot}"></path>`
+      +`<path class="cf" d="${bar}"></path>`
+      +`<text class="cl" x="${mx}" y="${(ay+by)/2-3}" text-anchor="middle">1:N</text></g>`; });
+  svg.innerHTML=s;
+  edges.forEach(ed=>{ const g=document.getElementById('g_'+ed.id);
+    g.addEventListener('mouseenter',()=>focusEdge(ed)); g.addEventListener('mouseleave',clearFocus); });
+}
+const on=(...ids)=>ids.flat().forEach(i=>document.getElementById(i)?.classList.add('on'));
+function focusEdge(ed){document.body.classList.add('focusing');on(tid(ed.fromTbl),tid(ed.toTbl),ed.fromRow,ed.toRow,'g_'+ed.id);}
+function focusTable(t){document.body.classList.add('focusing');on(tid(t));edges.forEach(ed=>{if(ed.fromTbl===t||ed.toTbl===t)on('g_'+ed.id,tid(ed.fromTbl),tid(ed.toTbl),ed.fromRow,ed.toRow);});}
+function focusRow(row){const ed=edges.find(e=>e.fromRow===row);if(ed)focusEdge(ed);}
+function clearFocus(){document.body.classList.remove('focusing');document.querySelectorAll('.on').forEach(e=>e.classList.remove('on'));}
+
+let dragging=null;
+SCHEMA.forEach(t=>{ const th=document.querySelector(`[data-th="${t.name}"]`);
+  th.addEventListener('mouseenter',()=>{if(!dragging)focusTable(t.name);});
+  th.addEventListener('mouseleave',()=>{if(!dragging)clearFocus();}); });
+document.querySelectorAll('.row[data-fk]').forEach(r=>{
+  r.addEventListener('mouseenter',()=>{if(!dragging)focusRow(r.id);});
+  r.addEventListener('mouseleave',()=>{if(!dragging)clearFocus();}); });
+
+let z=saved.z||0.6, panX=saved.panX??30, panY=saved.panY??8;
+const apply=()=>stage.style.transform=`translate(${panX}px,${panY}px) scale(${z})`;
+apply();
+vp.addEventListener('wheel',e=>{ e.preventDefault(); const r=vp.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+  const nz=Math.min(2,Math.max(.3,z*(e.deltaY<0?1.1:0.9))); panX=mx-(mx-panX)*(nz/z); panY=my-(my-panY)*(nz/z); z=nz; apply(); save(); },{passive:false});
+let pan=null;
+vp.addEventListener('mousedown',e=>{ if(e.target.closest('.table'))return; pan={x:e.clientX-panX,y:e.clientY-panY}; vp.classList.add('panning'); });
+window.addEventListener('mousemove',e=>{ if(pan){panX=e.clientX-pan.x;panY=e.clientY-pan.y;apply();} });
+window.addEventListener('mouseup',()=>{ if(pan){pan=null;vp.classList.remove('panning');save();} });
+function fitView(){
+  let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
+  SCHEMA.forEach(t=>{const h=THH+t.f.length*RH+20;minX=Math.min(minX,t.x);minY=Math.min(minY,t.y);maxX=Math.max(maxX,t.x+TW);maxY=Math.max(maxY,t.y+h);});
+  const pad=70,cw=maxX-minX,ch=maxY-minY,vpw=vp.clientWidth,vph=vp.clientHeight;
+  z=Math.max(.25,Math.min((vpw-pad)/cw,(vph-pad)/ch,1.1));
+  panX=(vpw-cw*z)/2-minX*z; panY=(vph-ch*z)/2-minY*z; apply(); save();
+}
+document.getElementById('zin').onclick=()=>{z=Math.min(2,z*1.15);apply();save();};
+document.getElementById('zout').onclick=()=>{z=Math.max(.3,z*0.87);apply();save();};
+document.getElementById('zfit').onclick=fitView;
+
+SCHEMA.forEach(t=>{ const th=document.querySelector(`[data-th="${t.name}"]`);
+  th.addEventListener('mousedown',e=>{e.stopPropagation();clearFocus();dragging={t,sx:e.clientX,sy:e.clientY,ox:t.x,oy:t.y};}); });
+window.addEventListener('mousemove',e=>{ if(!dragging)return;
+  dragging.t.x=dragging.ox+(e.clientX-dragging.sx)/z; dragging.t.y=dragging.oy+(e.clientY-dragging.sy)/z;
+  const d=document.getElementById(tid(dragging.t.name)); d.style.left=dragging.t.x+'px'; d.style.top=dragging.t.y+'px'; drawWires(); });
+window.addEventListener('mouseup',()=>{ if(dragging){dragging=null;save();} });
+
+document.getElementById('relTog').onchange=e=>stage.classList.toggle('hideRel',!e.target.checked);
+document.getElementById('resetBtn').onclick=()=>{localStorage.removeItem(SAVE);location.reload();};
+function save(){ const pos={}; SCHEMA.forEach(t=>pos[t.name]={x:Math.round(t.x),y:Math.round(t.y)});
+  localStorage.setItem(SAVE,JSON.stringify({pos,z,panX,panY})); }
+function blobDL(n,t,ty){const b=new Blob([t],{type:ty}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=n;a.click();URL.revokeObjectURL(u);}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1600);}
+document.getElementById('sqlBtn').onclick=()=>{blobDL('ola_supabase_schema.sql',SQL,'text/sql');toast('Downloaded ola_supabase_schema.sql');};
+document.getElementById('copyBtn').onclick=async()=>{try{await navigator.clipboard.writeText(SQL);toast('SQL copied');}catch(e){toast('Copy failed — use Download');}};
+
+drawWires();
+if(!saved.z) fitView();   // first load → fit & center the whole diagram
+
+const SQL = String.raw`-- ============================================================================
+-- Ola Electric — Supabase (Postgres) schema  ·  v2.0 (production-real)
+-- 10 entities for the Metafore SOR. Scope: CRM records + explainable pricing.
+-- Raw GPS / high-frequency telemetry stays in Ola's operational infra.
+--
+-- Conventions: snake_case; id UUID PK; created_at + updated_at TIMESTAMPTZ;
+-- FK columns <parent>_id; created_by / last_changed_by are AUDIT ONLY (no FK).
+-- Lifecycle handled via status fields (no hard deletes). Parent-before-child.
+-- ============================================================================
+
+create extension if not exists "pgcrypto";
+
+-- ---------- 1. driver -------------------------------------------------------
+create table driver (
+    id               uuid primary key default gen_random_uuid(),
+    name             varchar(120) not null,
+    phone            varchar(15)  not null unique,
+    email            varchar(255),
+    license_number   varchar(40)  not null unique,
+    license_expiry   date,
+    operating_city   varchar(80),
+    status           varchar(20)  not null default 'Active'
+                       check (status in ('Active','Inactive','Suspended','Pending_KYC','Blocked')),
+    is_active        boolean      not null default true,        -- currently accepting rides
+    kyc_verified     boolean      not null default false,
+    rating           numeric(2,1) check (rating between 0 and 5),
+    total_trips      integer      not null default 0,
+    joined_at        date,
+    created_by       uuid, last_changed_by uuid,                -- AUDIT ONLY
+    created_at       timestamptz  not null default now(),
+    updated_at       timestamptz  not null default now()
+);
+
+-- ---------- 2. rider --------------------------------------------------------
+create table rider (
+    id                     uuid primary key default gen_random_uuid(),
+    name                   varchar(120) not null,
+    phone                  varchar(15)  not null unique,
+    email                  varchar(255),                        -- PII
+    home_city              varchar(80),
+    rating                 numeric(2,1) check (rating between 0 and 5),
+    wallet_balance         numeric(12,2) not null default 0,    -- PII
+    default_payment_method varchar(20) check (default_payment_method in ('Cash','Wallet','UPI','Card')),
+    total_trips            integer not null default 0,
+    is_blocked             boolean not null default false,
+    signup_date            date,
+    created_by uuid, last_changed_by uuid,
+    created_at             timestamptz not null default now(),
+    updated_at             timestamptz not null default now()
+);
+
+-- ---------- 3. pricing_zone -------------------------------------------------
+create table pricing_zone (
+    id               uuid primary key default gen_random_uuid(),
+    name             varchar(120) not null,
+    city             varchar(80)  not null,
+    geohash          varchar(20),
+    timezone         varchar(40)  not null default 'Asia/Kolkata',
+    base_fare        numeric(8,2),
+    per_km_rate      numeric(6,2),
+    minimum_fare     numeric(8,2),
+    regulation_cap   numeric(4,2),                              -- max surge multiplier
+    is_active        boolean      not null default true,
+    created_by uuid, last_changed_by uuid,
+    created_at       timestamptz  not null default now(),
+    updated_at       timestamptz  not null default now()
+);
+
+-- ---------- 4. vehicle (child of driver) ------------------------------------
+create table vehicle (
+    id                uuid primary key default gen_random_uuid(),
+    driver_id         uuid not null references driver(id),
+    registration_no   varchar(20) not null unique,
+    vehicle_type      varchar(20) check (vehicle_type in ('EV_Cab','Bike','Auto','Mini')),
+    model             varchar(60),
+    color             varchar(30),
+    manufacture_year  integer check (manufacture_year between 1990 and 2100),
+    fuel_type         varchar(20) check (fuel_type in ('Electric','CNG','Petrol')),
+    seating_capacity  integer,
+    battery_level     numeric(5,2) check (battery_level between 0 and 100),
+    is_compliant      boolean not null default false,
+    insurance_expiry  date,
+    created_by uuid, last_changed_by uuid,
+    created_at        timestamptz not null default now(),
+    updated_at        timestamptz not null default now()
+);
+
+-- ---------- 5. surge_pricing_event (child of pricing_zone) ------------------
+create table surge_pricing_event (
+    id                 uuid primary key default gen_random_uuid(),
+    pricing_zone_id    uuid not null references pricing_zone(id),
+    vehicle_type       varchar(20) check (vehicle_type in ('EV_Cab','Bike','Auto','Mini')),
+    real_time_demand   integer,
+    real_time_supply   integer,
+    historical_demand  integer,
+    historical_supply  integer,
+    pressure_index     numeric(6,2),
+    surge_multiplier   numeric(4,2) not null default 1.0,
+    effective_from     timestamptz,
+    effective_to       timestamptz,
+    created_by uuid, last_changed_by uuid,
+    created_at         timestamptz not null default now(),      -- decision timestamp
+    updated_at         timestamptz not null default now()
+);
+
+-- ---------- 6. driver_availability_snapshot ---------------------------------
+create table driver_availability_snapshot (
+    id               uuid primary key default gen_random_uuid(),
+    driver_id        uuid not null references driver(id),
+    pricing_zone_id  uuid references pricing_zone(id),
+    status           varchar(20) check (status in ('Online','Busy','Offline')),
+    latitude         numeric(9,6),                              -- coarse / masked
+    longitude        numeric(9,6),
+    snapshot_time    timestamptz not null,
+    created_by uuid, last_changed_by uuid,
+    created_at       timestamptz not null default now(),
+    updated_at       timestamptz not null default now()
+);
+
+-- ---------- 7. trip ---------------------------------------------------------
+create table trip (
+    id                  uuid primary key default gen_random_uuid(),
+    trip_number         varchar(20) not null unique,
+    rider_id            uuid references rider(id),
+    driver_id           uuid references driver(id),
+    vehicle_id          uuid references vehicle(id),
+    pricing_event_id    uuid references surge_pricing_event(id),
+    status              varchar(20) not null default 'Requested'
+                          check (status in ('Requested','Assigned','InProgress','Completed','Cancelled')),
+    requested_at        timestamptz not null default now(),
+    start_time          timestamptz,
+    end_time            timestamptz,
+    pickup_address      varchar(255),
+    pickup_lat          numeric(9,6),
+    pickup_lng          numeric(9,6),
+    drop_address        varchar(255),
+    drop_lat            numeric(9,6),
+    drop_lng            numeric(9,6),
+    distance_km         numeric(6,2),
+    duration_min        integer,
+    base_fare           numeric(12,2),
+    surge_multiplier    numeric(4,2),
+    fare                numeric(12,2),
+    otp                 varchar(6),
+    cancelled_at        timestamptz,
+    cancellation_reason varchar(120),
+    cancelled_by        varchar(10) check (cancelled_by in ('Rider','Driver','System')),
+    created_by uuid, last_changed_by uuid,
+    created_at          timestamptz not null default now(),
+    updated_at          timestamptz not null default now()
+);
+
+-- ---------- 8. payment (child of trip) --------------------------------------
+create table payment (
+    id               uuid primary key default gen_random_uuid(),
+    payment_number   varchar(20) not null unique,
+    trip_id          uuid not null references trip(id),
+    amount           numeric(12,2) not null,
+    currency         char(3) not null default 'INR',
+    payment_method   varchar(20) check (payment_method in ('Cash','Wallet','UPI','Card')),
+    payment_status   varchar(20) not null default 'Pending'
+                       check (payment_status in ('Pending','Success','Failed','Refunded')),
+    surge_applied    boolean not null default false,
+    gateway          varchar(30),
+    transaction_ref  varchar(64),
+    refund_amount    numeric(12,2) default 0,
+    paid_at          timestamptz,
+    created_by uuid, last_changed_by uuid,
+    created_at       timestamptz not null default now(),
+    updated_at       timestamptz not null default now()
+);
+
+-- ---------- 9. support_case (child of trip, rider, driver) ------------------
+create table support_case (
+    id               uuid primary key default gen_random_uuid(),
+    case_number      varchar(20) not null unique,
+    trip_id          uuid references trip(id),
+    rider_id         uuid references rider(id),
+    driver_id        uuid references driver(id),
+    case_type        varchar(20) check (case_type in ('Safety','Payment','Cancellation','Service')),
+    subject          varchar(160),
+    description      text,
+    channel          varchar(20) check (channel in ('App','Phone','Email','Chat')),
+    priority         varchar(10) check (priority in ('Low','Medium','High','Critical')),
+    status           varchar(20) not null default 'New'
+                       check (status in ('New','InProgress','Closed')),
+    resolved_at      timestamptz,
+    created_by uuid, last_changed_by uuid,
+    created_at       timestamptz not null default now(),
+    updated_at       timestamptz not null default now()
+);
+
+-- ---------- 10. payment_dispute (child of payment, trip, rider) -------------
+create table payment_dispute (
+    id                 uuid primary key default gen_random_uuid(),
+    dispute_number     varchar(20) not null unique,
+    payment_id         uuid not null references payment(id),
+    trip_id            uuid references trip(id),
+    rider_id           uuid references rider(id),
+    reason             varchar(40) check (reason in ('Wrong_Fare','Failed_Payment','Refund')),
+    description        text,
+    status             varchar(20) not null default 'Open'
+                         check (status in ('Open','Under_Review','Resolved')),
+    resolution_amount  numeric(12,2),
+    raised_at          timestamptz not null default now(),
+    resolved_at        timestamptz,
+    created_by uuid, last_changed_by uuid,
+    created_at         timestamptz not null default now(),
+    updated_at         timestamptz not null default now()
+);
+
+-- ---------- Indexes : foreign keys ------------------------------------------
+create index idx_vehicle_driver          on vehicle(driver_id);
+create index idx_spe_zone                on surge_pricing_event(pricing_zone_id);
+create index idx_das_driver              on driver_availability_snapshot(driver_id);
+create index idx_das_zone                on driver_availability_snapshot(pricing_zone_id);
+create index idx_trip_rider              on trip(rider_id);
+create index idx_trip_driver             on trip(driver_id);
+create index idx_trip_vehicle            on trip(vehicle_id);
+create index idx_trip_pricing_event      on trip(pricing_event_id);
+create index idx_payment_trip            on payment(trip_id);
+create index idx_support_case_trip       on support_case(trip_id);
+create index idx_support_case_rider      on support_case(rider_id);
+create index idx_support_case_driver     on support_case(driver_id);
+create index idx_payment_dispute_payment on payment_dispute(payment_id);
+create index idx_payment_dispute_trip    on payment_dispute(trip_id);
+create index idx_payment_dispute_rider   on payment_dispute(rider_id);
+
+-- ---------- Indexes : common query / dashboard paths ------------------------
+create index idx_driver_status           on driver(status);
+create index idx_driver_city             on driver(operating_city);
+create index idx_rider_city              on rider(home_city);
+create index idx_trip_status             on trip(status);
+create index idx_trip_requested_at       on trip(requested_at);
+create index idx_payment_status          on payment(payment_status);
+create index idx_support_case_status     on support_case(status);
+create index idx_vehicle_type            on vehicle(vehicle_type);
+`;
+</script>
+</body>
+</html>
