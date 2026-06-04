@@ -60,6 +60,13 @@
   #wires g.on .cl{fill:#fff}
   .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:8px 16px;border-radius:8px;font-size:12.5px;opacity:0;transition:opacity .2s;z-index:50}
   .toast.show{opacity:.95}
+  .tip{position:fixed;z-index:60;pointer-events:none;background:#0f172a;color:#fff;padding:6px 10px;border-radius:7px;font-size:11.5px;line-height:1.3;box-shadow:0 4px 16px rgba(15,23,42,.32);opacity:0;transition:opacity .08s;max-width:240px}
+  .tip.show{opacity:.97}
+  .tip b{font-weight:700}
+  .tip .s{display:block;color:#9aa6bd;font-size:9.5px;font-family:'JetBrains Mono',monospace;margin-top:3px}
+  .hint{position:absolute;left:12px;bottom:11px;z-index:5;background:rgba(255,255,255,.94);border:1px solid #e2e8f0;border-radius:9px;padding:7px 11px;font-size:10.5px;color:#475569;box-shadow:0 2px 9px rgba(15,23,42,.09);pointer-events:none;max-width:300px;transition:opacity .4s}
+  .hint b{color:#0f172a;font-weight:700}
+  .hint .k{display:inline-block;background:#eef2ff;color:#4338ca;border-radius:4px;padding:0 5px;font-weight:700;font-family:'JetBrains Mono',monospace;font-size:9.5px}
 </style>
 </head>
 <body>
@@ -77,8 +84,11 @@
   <span class="btn" id="copyBtn">Copy SQL</span>
   <span class="btn p" id="sqlBtn">⬇ SQL</span>
 </div>
-<div id="viewport"><div id="stage"><svg id="wires"></svg></div></div>
+<div id="viewport"><div id="stage"><svg id="wires"></svg></div>
+  <div class="hint" id="hint"><b>Hover</b> a line or <b>FK</b> row to see the relationship · <span class="k">drag</span> a coloured header to move a table · <span class="k">scroll</span> to zoom · <span class="k">drag</span> the background to pan · double-click empty space or hit <b>Fit</b> to re-centre</div>
+</div>
 <div class="toast" id="toast"></div>
+<div class="tip" id="tip"></div>
 
 <script>
 const C={green:'#16a34a',teal:'#0d9488',slate:'#64748b',cyan:'#0891b2',sky:'#06b6d4',gray:'#7c8794',blue:'#2563eb',purple:'#7c3aed',red:'#dc2626',violet:'#9333ea'};
@@ -105,9 +115,27 @@ const rowY=(t,idx)=> t.y + THH + idx*RH + RH/2;
 const rid=(t,f)=>'f-'+t+'-'+f, tid=t=>'t-'+t;
 const FLAG={unq:['UQ','b-unq'],calc:['fx','b-calc'],pii:['PII','b-pii']};
 
+// human-readable phrase for each relationship (child > parent), shown on hover
+const REL={
+  'vehicle>driver':'driver has vehicles',
+  'surge_pricing_event>pricing_zone':'zone produces pricing events',
+  'driver_availability_snapshot>driver':'driver has status snapshots',
+  'driver_availability_snapshot>pricing_zone':'zone-level supply signal',
+  'trip>rider':'rider books trips',
+  'trip>driver':'driver serves trips',
+  'trip>vehicle':'vehicle used on trips',
+  'trip>surge_pricing_event':'pricing event applied to trip',
+  'payment>trip':'trip has payments',
+  'support_case>trip':'trip can create cases',
+  'support_case>rider':'rider raises cases',
+  'support_case>driver':'driver linked to cases',
+  'payment_dispute>payment':'payment can be disputed',
+  'payment_dispute>trip':'trip context for dispute',
+  'payment_dispute>rider':'rider raises disputes'
+};
 const edges=[];
 SCHEMA.forEach(t=>t.f.forEach((fld,i)=>{ if(fld[2].startsWith('fk:')){ const tgt=fld[2].slice(3);
-  edges.push({id:'e'+edges.length,fromTbl:t.name,fromIdx:i,fromRow:rid(t.name,fld[0]),toTbl:tgt,toRow:rid(tgt,'id')}); }}));
+  edges.push({id:'e'+edges.length,fromTbl:t.name,fromIdx:i,fromRow:rid(t.name,fld[0]),toTbl:tgt,toRow:rid(tgt,'id'),desc:REL[t.name+'>'+tgt]||''}); }}));
 
 const stage=document.getElementById('stage'), svg=document.getElementById('wires'), vp=document.getElementById('viewport');
 const SAVE='ola_er_layout_v4';
@@ -152,8 +180,13 @@ function drawWires(){
       +`<text class="cl" x="${mx}" y="${ly+0.5}" text-anchor="middle" dominant-baseline="middle">1:N</text></g>`; });
   svg.innerHTML=s;
   edges.forEach(ed=>{ const g=document.getElementById('g_'+ed.id);
-    g.addEventListener('mouseenter',()=>focusEdge(ed)); g.addEventListener('mouseleave',clearFocus); });
+    g.addEventListener('mouseenter',()=>{focusEdge(ed);showTip(ed);}); g.addEventListener('mouseleave',()=>{clearFocus();hideTip();}); });
 }
+const tip=document.getElementById('tip'); let mxg=0,myg=0;
+window.addEventListener('mousemove',e=>{ mxg=e.clientX; myg=e.clientY; if(tip.classList.contains('show'))placeTip(); });
+function placeTip(){ tip.style.left=Math.min(mxg+15,innerWidth-tip.offsetWidth-8)+'px'; tip.style.top=Math.min(myg+16,innerHeight-tip.offsetHeight-8)+'px'; }
+function showTip(ed){ if(!ed||!ed.desc)return; tip.innerHTML=`<b>${ed.desc}</b><span class="s">${ed.toTbl} &nbsp;1&nbsp;→&nbsp;&nbsp;${ed.fromTbl} &nbsp;N</span>`; tip.classList.add('show'); placeTip(); }
+function hideTip(){ tip.classList.remove('show'); }
 const on=(...ids)=>ids.flat().forEach(i=>document.getElementById(i)?.classList.add('on'));
 function focusEdge(ed){document.body.classList.add('focusing');on(tid(ed.fromTbl),tid(ed.toTbl),ed.fromRow,ed.toRow,'g_'+ed.id);}
 function focusTable(t){document.body.classList.add('focusing');on(tid(t));edges.forEach(ed=>{if(ed.fromTbl===t||ed.toTbl===t)on('g_'+ed.id,tid(ed.fromTbl),tid(ed.toTbl),ed.fromRow,ed.toRow);});}
@@ -165,14 +198,18 @@ SCHEMA.forEach(t=>{ const th=document.querySelector(`[data-th="${t.name}"]`);
   th.addEventListener('mouseenter',()=>{if(!dragging)focusTable(t.name);});
   th.addEventListener('mouseleave',()=>{if(!dragging)clearFocus();}); });
 document.querySelectorAll('.row[data-fk]').forEach(r=>{
-  r.addEventListener('mouseenter',()=>{if(!dragging)focusRow(r.id);});
-  r.addEventListener('mouseleave',()=>{if(!dragging)clearFocus();}); });
+  r.addEventListener('mouseenter',()=>{if(dragging)return; const ed=edges.find(e=>e.fromRow===r.id); if(ed){focusEdge(ed);showTip(ed);}});
+  r.addEventListener('mouseleave',()=>{if(!dragging){clearFocus();hideTip();}}); });
 
 let z=saved.z||0.6, panX=saved.panX??30, panY=saved.panY??8;
 const apply=()=>stage.style.transform=`translate(${panX}px,${panY}px) scale(${z})`;
 apply();
 vp.addEventListener('wheel',e=>{ e.preventDefault(); const r=vp.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
-  const nz=Math.min(2,Math.max(.3,z*(e.deltaY<0?1.1:0.9))); panX=mx-(mx-panX)*(nz/z); panY=my-(my-panY)*(nz/z); z=nz; apply(); save(); },{passive:false});
+  const nz=Math.min(2,Math.max(.3,z*(e.deltaY<0?1.06:0.943))); panX=mx-(mx-panX)*(nz/z); panY=my-(my-panY)*(nz/z); z=nz; apply(); save(); },{passive:false});
+vp.addEventListener('dblclick',e=>{ if(!e.target.closest('.table')) fitView(); });
+const hint=document.getElementById('hint'); let hintTimer=setTimeout(dismissHint,9000);
+function dismissHint(){ hint.style.opacity='0'; clearTimeout(hintTimer); }
+vp.addEventListener('wheel',dismissHint,{passive:true}); vp.addEventListener('mousedown',dismissHint);
 let pan=null;
 vp.addEventListener('mousedown',e=>{ if(e.target.closest('.table'))return; pan={x:e.clientX-panX,y:e.clientY-panY}; vp.classList.add('panning'); });
 window.addEventListener('mousemove',e=>{ if(pan){panX=e.clientX-pan.x;panY=e.clientY-pan.y;apply();} });
