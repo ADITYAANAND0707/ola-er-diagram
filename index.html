@@ -36,19 +36,23 @@
   svg#wires .cl{fill:var(--hi);font-size:9px;font-weight:800;letter-spacing:.03em;font-family:'JetBrains Mono',monospace;pointer-events:none}
   #stage.hideRel svg#wires{display:none}
 
-  .table{position:absolute;width:248px;background:#fff;border:1px solid #d8dee9;border-radius:10px;box-shadow:0 3px 10px rgba(15,23,42,.10);z-index:2;transition:box-shadow .1s,opacity .1s;overflow:hidden}
-  .th{padding:7px 12px;color:#fff;cursor:grab}
+  .table{position:absolute;width:340px;background:#fff;border:1px solid #d8dee9;border-radius:10px;box-shadow:0 3px 10px rgba(15,23,42,.10);z-index:2;transition:box-shadow .1s,opacity .1s;overflow:hidden}
+  .th{padding:8px 13px;color:#fff;cursor:grab}
   .th:active{cursor:grabbing}
-  .th .nm{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12.5px}
-  .th .st{font-size:9px;opacity:.9}
-  .row{display:grid;grid-template-columns:16px 1fr auto auto;gap:5px;align-items:center;height:21px;padding:0 11px;border-top:1px solid #f1f5f9;font-size:10.5px;transition:background .1s}
+  .th .nm{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13.5px;letter-spacing:.01em}
+  .th .st{font-size:10px;opacity:.92;margin-top:1px}
+  .rowh{display:grid;grid-template-columns:16px minmax(0,1fr) auto auto minmax(0,1.55fr);gap:6px;align-items:center;height:20px;padding:0 12px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#94a3b8}
+  .rowh .h-ty{text-align:right}
+  .row{display:grid;grid-template-columns:16px minmax(0,1fr) auto auto minmax(0,1.55fr);gap:6px;align-items:center;height:23px;padding:0 12px;border-top:1px solid #f1f5f9;font-size:12px;transition:background .1s}
   .row .kc{display:flex;align-items:center;justify-content:center}
   .row .fn{font-family:'JetBrains Mono',monospace;font-weight:600;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .row.pk .fn{font-weight:800}.row.fk .fn{color:#2563eb}
   .row.aud .fn{color:#94a3b8;font-weight:500}
-  .row .fl{font-size:7.5px;font-weight:800;letter-spacing:.02em;padding:0 4px;border-radius:3px;color:#fff}
-  .row .ty{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:#94a3b8;white-space:nowrap;text-align:right}
-  .row.aud .ty{color:#cbd5e1}
+  .row .fl{font-size:8px;font-weight:800;letter-spacing:.02em;padding:0 4px;border-radius:3px;color:#fff}
+  .row .ty{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#64748b;white-space:nowrap;text-align:right}
+  .row .pp{font-size:10.5px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row.pk .pp{color:#b45309;font-weight:700}.row.fk .pp{color:#2563eb;font-weight:600}
+  .row.aud .ty,.row.aud .pp{color:#cbd5e1}
   .foot{padding:3px 11px;border-top:1px solid #f1f5f9;font-size:8px;color:#cbd5e1;font-family:'JetBrains Mono',monospace;border-radius:0 0 10px 10px}
 
   body.focusing .table:not(.on){opacity:.18}
@@ -97,21 +101,22 @@ const LINK='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="
 const AUD=[['created_by','uuid','','audit'],['last_changed_by','uuid','','audit'],['created_at','timestamptz','','audit'],['updated_at','timestamptz','','audit']];
 // field: [name, type, key('pk'|'fk:tgt'|''), flag('pii'|'unq'|'calc'|'audit'|'')]
 const SCHEMA=[
- {name:"rider",sub:"Rider / customer profile",color:'#0d9488',x:720,y:40,f:[["id","uuid","pk",""],["name","varchar(120)","",""],["phone","varchar(15)","","unq"],["email","varchar(255)","","pii"],["home_city","varchar(80)","",""],["rating","numeric(2,1)","",""],["wallet_balance","numeric(12,2)","","pii"],["default_payment_method","varchar(20)","",""],["total_trips","integer","",""],["is_blocked","boolean","",""],["signup_date","date","",""]]},
- {name:"support_case",sub:"Customer / driver case",color:'#dc2626',x:1060,y:40,f:[["id","uuid","pk",""],["case_number","varchar(20)","","unq"],["trip_id","uuid","fk:trip",""],["rider_id","uuid","fk:rider",""],["driver_id","uuid","fk:driver",""],["case_type","varchar(20)","",""],["subject","varchar(160)","",""],["description","text","",""],["channel","varchar(20)","",""],["priority","varchar(10)","",""],["status","varchar(20)","",""],["resolved_at","timestamptz","",""]]},
- {name:"payment_dispute",sub:"Fare / payment complaint",color:'#9333ea',x:1060,y:460,f:[["id","uuid","pk",""],["dispute_number","varchar(20)","","unq"],["payment_id","uuid","fk:payment",""],["trip_id","uuid","fk:trip",""],["rider_id","uuid","fk:rider",""],["reason","varchar(40)","",""],["description","text","",""],["status","varchar(20)","",""],["resolution_amount","numeric(12,2)","",""],["raised_at","timestamptz","",""],["resolved_at","timestamptz","",""]]},
- {name:"driver",sub:"Driver partner profile",color:'#16a34a',x:40,y:40,f:[["id","uuid","pk",""],["name","varchar(120)","",""],["phone","varchar(15)","","unq"],["email","varchar(255)","",""],["license_number","varchar(40)","","unq"],["license_expiry","date","",""],["operating_city","varchar(80)","",""],["status","varchar(20)","",""],["is_active","boolean","",""],["kyc_verified","boolean","",""],["rating","numeric(2,1)","",""],["total_trips","integer","","calc"],["joined_at","date","",""]]},
- {name:"vehicle",sub:"Vehicle linked to driver",color:'#64748b',x:380,y:40,f:[["id","uuid","pk",""],["driver_id","uuid","fk:driver",""],["registration_no","varchar(20)","","unq"],["vehicle_type","varchar(20)","",""],["model","varchar(60)","",""],["color","varchar(30)","",""],["manufacture_year","integer","",""],["fuel_type","varchar(20)","",""],["seating_capacity","integer","",""],["battery_level","numeric(5,2)","",""],["is_compliant","boolean","",""],["insurance_expiry","date","",""]]},
- {name:"trip",sub:"Core ride / booking",color:'#2563eb',x:380,y:440,f:[["id","uuid","pk",""],["trip_number","varchar(20)","","unq"],["rider_id","uuid","fk:rider",""],["driver_id","uuid","fk:driver",""],["vehicle_id","uuid","fk:vehicle",""],["pricing_event_id","uuid","fk:surge_pricing_event",""],["status","varchar(20)","",""],["requested_at","timestamptz","",""],["start_time","timestamptz","",""],["end_time","timestamptz","",""],["pickup_address","varchar(255)","",""],["pickup_lat","numeric(9,6)","",""],["pickup_lng","numeric(9,6)","",""],["drop_address","varchar(255)","",""],["drop_lat","numeric(9,6)","",""],["drop_lng","numeric(9,6)","",""],["distance_km","numeric(6,2)","",""],["duration_min","integer","",""],["base_fare","numeric(12,2)","",""],["surge_multiplier","numeric(4,2)","",""],["fare","numeric(12,2)","","calc"],["otp","varchar(6)","",""],["cancelled_at","timestamptz","",""],["cancellation_reason","varchar(120)","",""],["cancelled_by","varchar(10)","",""]]},
- {name:"payment",sub:"Payment collection",color:'#7c3aed',x:720,y:820,f:[["id","uuid","pk",""],["payment_number","varchar(20)","","unq"],["trip_id","uuid","fk:trip",""],["amount","numeric(12,2)","",""],["currency","char(3)","",""],["payment_method","varchar(20)","",""],["payment_status","varchar(20)","",""],["surge_applied","boolean","",""],["gateway","varchar(30)","",""],["transaction_ref","varchar(64)","",""],["refund_amount","numeric(12,2)","",""],["paid_at","timestamptz","",""]]},
- {name:"driver_availability_snapshot",sub:"Aggregated ops snapshot",color:'#7c8794',x:40,y:960,f:[["id","uuid","pk",""],["driver_id","uuid","fk:driver",""],["pricing_zone_id","uuid","fk:pricing_zone",""],["status","varchar(20)","",""],["latitude","numeric(9,6)","",""],["longitude","numeric(9,6)","",""],["snapshot_time","timestamptz","",""]]},
- {name:"pricing_zone",sub:"Geo pricing zone",color:'#0891b2',x:40,y:660,f:[["id","uuid","pk",""],["name","varchar(120)","",""],["city","varchar(80)","",""],["geohash","varchar(20)","",""],["timezone","varchar(40)","",""],["base_fare","numeric(8,2)","",""],["per_km_rate","numeric(6,2)","",""],["minimum_fare","numeric(8,2)","",""],["regulation_cap","numeric(4,2)","",""],["is_active","boolean","",""]]},
- {name:"surge_pricing_event",sub:"Explainable pricing decision",color:'#06b6d4',x:720,y:440,f:[["id","uuid","pk",""],["pricing_zone_id","uuid","fk:pricing_zone",""],["vehicle_type","varchar(20)","",""],["real_time_demand","integer","",""],["real_time_supply","integer","",""],["historical_demand","integer","",""],["historical_supply","integer","",""],["pressure_index","numeric(6,2)","","calc"],["surge_multiplier","numeric(4,2)","",""],["effective_from","timestamptz","",""],["effective_to","timestamptz","",""]]}
+ {name:"rider",sub:"Rider / customer profile",color:'#0d9488',x:960,y:40,f:[["id","uuid","pk","","PK"],["name","varchar(120)","","","Rider name"],["phone","varchar(15)","","unq","Unique contact"],["email","varchar(255)","","pii","PII"],["home_city","varchar(80)","","","Home city"],["rating","numeric(2,1)","","","0.0-5.0"],["wallet_balance","numeric(12,2)","","pii","PII; default 0"],["default_payment_method","varchar(20)","","","Cash/Wallet/UPI/Card"],["total_trips","integer","","","Lifetime trips"],["is_blocked","boolean","","","Blocked flag"],["signup_date","date","","","Signup"]]},
+ {name:"support_case",sub:"Customer / driver case",color:'#dc2626',x:1440,y:40,f:[["id","uuid","pk","","PK"],["case_number","varchar(20)","","unq","Unique; CASE-00001"],["trip_id","uuid","fk:trip","","FK \u2192 trip"],["rider_id","uuid","fk:rider","","FK \u2192 rider"],["driver_id","uuid","fk:driver","","FK \u2192 driver"],["case_type","varchar(20)","","","Safety/Payment/\u2026"],["subject","varchar(160)","","","Subject"],["description","text","","","Details"],["channel","varchar(20)","","","App/Phone/Email/Chat"],["priority","varchar(10)","","","Low\u2026Critical"],["status","varchar(20)","","","New/InProgress/Closed"],["resolved_at","timestamptz","","","Resolved at"]]},
+ {name:"payment_dispute",sub:"Fare / payment complaint",color:'#9333ea',x:1440,y:490,f:[["id","uuid","pk","","PK"],["dispute_number","varchar(20)","","unq","Unique; DSP-00001"],["payment_id","uuid","fk:payment","","FK \u2192 payment"],["trip_id","uuid","fk:trip","","FK \u2192 trip"],["rider_id","uuid","fk:rider","","FK \u2192 rider"],["reason","varchar(40)","","","Wrong fare/refund"],["description","text","","","Details"],["status","varchar(20)","","","Open/Under_Review/Resolved"],["resolution_amount","numeric(12,2)","","","Refund / adj"],["raised_at","timestamptz","","","Raised at"],["resolved_at","timestamptz","","","Resolved at"]]},
+ {name:"driver",sub:"Driver partner profile",color:'#16a34a',x:40,y:40,f:[["id","uuid","pk","","PK"],["name","varchar(120)","","","Driver name"],["phone","varchar(15)","","unq","Unique contact"],["email","varchar(255)","","","Contact"],["license_number","varchar(40)","","unq","Unique"],["license_expiry","date","","","Licence expiry"],["operating_city","varchar(80)","","","Operating city"],["status","varchar(20)","","","Active/Suspended/Pending_KYC/Blocked"],["is_active","boolean","","","Accepting rides"],["kyc_verified","boolean","","","KYC done"],["rating","numeric(2,1)","","","0.0-5.0"],["total_trips","integer","","calc","Lifetime trips"],["joined_at","date","","","Onboarded"]]},
+ {name:"vehicle",sub:"Vehicle linked to driver",color:'#64748b',x:480,y:40,f:[["id","uuid","pk","","PK"],["driver_id","uuid","fk:driver","","FK \u2192 driver"],["registration_no","varchar(20)","","unq","Unique"],["vehicle_type","varchar(20)","","","EV_Cab/Bike/Auto/Mini"],["model","varchar(60)","","","Model"],["color","varchar(30)","","","Colour"],["manufacture_year","integer","","","Year"],["fuel_type","varchar(20)","","","Electric/CNG/Petrol"],["seating_capacity","integer","","","Seats"],["battery_level","numeric(5,2)","","","EV %"],["is_compliant","boolean","","","Reg. readiness"],["insurance_expiry","date","","","Policy expiry"]]},
+ {name:"trip",sub:"Core ride / booking",color:'#2563eb',x:480,y:470,f:[["id","uuid","pk","","PK"],["trip_number","varchar(20)","","unq","Unique; TRIP-00001"],["rider_id","uuid","fk:rider","","FK \u2192 rider"],["driver_id","uuid","fk:driver","","FK \u2192 driver"],["vehicle_id","uuid","fk:vehicle","","FK \u2192 vehicle"],["pricing_event_id","uuid","fk:surge_pricing_event","","FK \u2192 surge_pricing_event"],["status","varchar(20)","","","Lifecycle"],["requested_at","timestamptz","","","Requested at"],["start_time","timestamptz","","","Start"],["end_time","timestamptz","","","End"],["pickup_address","varchar(255)","","","Pickup address"],["pickup_lat","numeric(9,6)","","","Pickup lat"],["pickup_lng","numeric(9,6)","","","Pickup lng"],["drop_address","varchar(255)","","","Drop address"],["drop_lat","numeric(9,6)","","","Drop lat"],["drop_lng","numeric(9,6)","","","Drop lng"],["distance_km","numeric(6,2)","","","Distance"],["duration_min","integer","","","Duration"],["base_fare","numeric(12,2)","","","Pre-surge"],["surge_multiplier","numeric(4,2)","","","Audit copy"],["fare","numeric(12,2)","","calc","Final fare"],["otp","varchar(6)","","","Start OTP"],["cancelled_at","timestamptz","","","Cancelled at"],["cancellation_reason","varchar(120)","","","Reason"],["cancelled_by","varchar(10)","","","Rider/Driver/System"]]},
+ {name:"payment",sub:"Payment collection",color:'#7c3aed',x:960,y:880,f:[["id","uuid","pk","","PK"],["payment_number","varchar(20)","","unq","Unique; PAY-00001"],["trip_id","uuid","fk:trip","","FK \u2192 trip"],["amount","numeric(12,2)","","","Collected"],["currency","char(3)","","","INR"],["payment_method","varchar(20)","","","Cash/Wallet/UPI/Card"],["payment_status","varchar(20)","","","Pending/Success/Failed/Refunded"],["surge_applied","boolean","","","Surge flag"],["gateway","varchar(30)","","","Gateway"],["transaction_ref","varchar(64)","","","Gateway ref"],["refund_amount","numeric(12,2)","","","Refund"],["paid_at","timestamptz","","","Captured at"]]},
+ {name:"driver_availability_snapshot",sub:"Aggregated ops snapshot",color:'#7c8794',x:40,y:1010,f:[["id","uuid","pk","","PK"],["driver_id","uuid","fk:driver","","FK \u2192 driver"],["pricing_zone_id","uuid","fk:pricing_zone","","FK \u2192 pricing_zone"],["status","varchar(20)","","","Online/Busy/Offline"],["latitude","numeric(9,6)","","","Masked"],["longitude","numeric(9,6)","","","Masked"],["snapshot_time","timestamptz","","","Agg. timestamp"]]},
+ {name:"pricing_zone",sub:"Geo pricing zone",color:'#0891b2',x:40,y:660,f:[["id","uuid","pk","","PK"],["name","varchar(120)","","","Zone name"],["city","varchar(80)","","","City"],["geohash","varchar(20)","","","Spatial bucket"],["timezone","varchar(40)","","","IANA tz"],["base_fare","numeric(8,2)","","","Base fare"],["per_km_rate","numeric(6,2)","","","Per-km rate"],["minimum_fare","numeric(8,2)","","","Min fare"],["regulation_cap","numeric(4,2)","","","Max surge \u00d7"],["is_active","boolean","","","Active"]]},
+ {name:"surge_pricing_event",sub:"Explainable pricing decision",color:'#06b6d4',x:960,y:470,f:[["id","uuid","pk","","PK"],["pricing_zone_id","uuid","fk:pricing_zone","","FK \u2192 pricing_zone"],["vehicle_type","varchar(20)","","","Cab/Bike/Auto/EV"],["real_time_demand","integer","","","Current requests"],["real_time_supply","integer","","","Available drivers"],["historical_demand","integer","","","Baseline demand"],["historical_supply","integer","","","Baseline supply"],["pressure_index","numeric(6,2)","","calc","RT vs hist"],["surge_multiplier","numeric(4,2)","","","Applied \u00d7; capped"],["effective_from","timestamptz","","","Window start"],["effective_to","timestamptz","","","Window end"]]}
 ];
 
-const TW=248, THH=34, RH=21;
+const TW=340;
 const tableById={}; SCHEMA.forEach(t=>tableById[t.name]=t);
-const rowY=(t,idx)=> t.y + THH + idx*RH + RH/2;
+// anchor wires to actual rendered row centres (robust to font / header-height changes)
+const rowCenterY=(t,rowId)=>{ const el=document.getElementById(rowId); return el ? t.y+el.offsetTop+el.offsetHeight/2 : t.y; };
 const rid=(t,f)=>'f-'+t+'-'+f, tid=t=>'t-'+t;
 const FLAG={unq:['UQ','b-unq'],calc:['fx','b-calc'],pii:['PII','b-pii']};
 
@@ -138,29 +143,31 @@ SCHEMA.forEach(t=>t.f.forEach((fld,i)=>{ if(fld[2].startsWith('fk:')){ const tgt
   edges.push({id:'e'+edges.length,fromTbl:t.name,fromIdx:i,fromRow:rid(t.name,fld[0]),toTbl:tgt,toRow:rid(tgt,'id'),desc:REL[t.name+'>'+tgt]||''}); }}));
 
 const stage=document.getElementById('stage'), svg=document.getElementById('wires'), vp=document.getElementById('viewport');
-const SAVE='ola_er_layout_v4';
+const SAVE='ola_er_layout_v5';
 let saved={}; try{saved=JSON.parse(localStorage.getItem(SAVE)||'{}')}catch(e){}
 SCHEMA.forEach(t=>{ if(saved.pos&&saved.pos[t.name]){t.x=saved.pos[t.name].x;t.y=saved.pos[t.name].y;} });
 
 function tableHTML(t){
   let rows='';
-  t.f.forEach(([n,ty,key,flag])=>{
+  t.f.forEach(([n,ty,key,flag,desc])=>{
     const isPk=key==='pk', isFk=key.startsWith('fk:'), isAud=flag==='audit';
     const cls=isPk?'pk':isFk?'fk':isAud?'aud':'';
     const ic=isPk?KEY:isFk?LINK:'';
     const fl=FLAG[flag]?`<span class="fl ${FLAG[flag][1]}">${FLAG[flag][0]}</span>`:'<span></span>';
+    const d=desc||'';
     rows+=`<div class="row ${cls}" id="${rid(t.name,n)}" data-tbl="${t.name}"${isFk?` data-fk="${key.slice(3)}"`:''}>
-      <span class="kc">${ic}</span><span class="fn" title="${n}">${n}</span>${fl}<span class="ty">${ty}</span></div>`;
+      <span class="kc">${ic}</span><span class="fn" title="${n}">${n}</span>${fl}<span class="ty">${ty}</span><span class="pp" title="${d}">${d}</span></div>`;
   });
   return `<div class="table" id="${tid(t.name)}" style="left:${t.x}px;top:${t.y}px">
-    <div class="th" style="background:${t.color}" data-th="${t.name}"><div class="nm">${t.name}</div><div class="st">${t.sub}</div></div>${rows}<div class="foot">+ created_by · last_changed_by · created_at · updated_at</div></div>`;
+    <div class="th" style="background:${t.color}" data-th="${t.name}"><div class="nm">${t.name}</div><div class="st">${t.sub}</div></div>
+    <div class="rowh"><span></span><span>Field</span><span></span><span class="h-ty">Type</span><span>Key / purpose</span></div>${rows}<div class="foot">+ created_by · last_changed_by · created_at · updated_at</div></div>`;
 }
 stage.insertAdjacentHTML('beforeend', SCHEMA.map(tableHTML).join(''));
 
 function drawWires(){
   let s='';
   edges.forEach(ed=>{ const a=tableById[ed.fromTbl], b=tableById[ed.toTbl];
-    const ay=rowY(a,ed.fromIdx), by=rowY(b,0), aRight=(a.x+TW/2)<(b.x+TW/2);
+    const ay=rowCenterY(a,ed.fromRow), by=rowCenterY(b,ed.toRow), aRight=(a.x+TW/2)<(b.x+TW/2);
     // child (FK, "many") side = x1 ; parent (PK, "one") side = x2
     const x1=aRight?a.x+TW:a.x, x2=aRight?b.x:b.x+TW;
     const sd=aRight?1:-1, td=aRight?-1:1;          // outward direction at each end
@@ -216,7 +223,7 @@ window.addEventListener('mousemove',e=>{ if(pan){panX=e.clientX-pan.x;panY=e.cli
 window.addEventListener('mouseup',()=>{ if(pan){pan=null;vp.classList.remove('panning');save();} });
 function fitView(){
   let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
-  SCHEMA.forEach(t=>{const h=THH+t.f.length*RH+20;minX=Math.min(minX,t.x);minY=Math.min(minY,t.y);maxX=Math.max(maxX,t.x+TW);maxY=Math.max(maxY,t.y+h);});
+  SCHEMA.forEach(t=>{const el=document.getElementById(tid(t.name));const h=el?el.offsetHeight:200;minX=Math.min(minX,t.x);minY=Math.min(minY,t.y);maxX=Math.max(maxX,t.x+TW);maxY=Math.max(maxY,t.y+h);});
   const pad=70,cw=maxX-minX,ch=maxY-minY,vpw=vp.clientWidth,vph=vp.clientHeight;
   z=Math.max(.25,Math.min((vpw-pad)/cw,(vph-pad)/ch,1.1));
   panX=(vpw-cw*z)/2-minX*z; panY=(vph-ch*z)/2-minY*z; apply(); save();
